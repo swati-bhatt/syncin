@@ -1,0 +1,214 @@
+// Syncin — fault-tolerant, multi-tenant scheduled-delivery engine.
+// Postgres is the source of truth. EVERY business table is scoped by tenant_id.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Tenancy root ─────────────────────────────
+// A Tenant is the unit of isolation — a clinic, salon, repair shop, gym, school:
+// any org using the engine. `apiKey` is the authenticated principal: callers send
+// `Authorization: Bearer <apiKey>` and the server DERIVES tenant_id from it.
+// The tenant id is never read from a client-supplied field — that's the whole
+// game in multi-tenancy.
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  timezone  String // IANA tz, e.g. "America/New_York" — reminders fire in local time
+  apiKey    String   @unique @map("api_key")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  members         Member[]
+  recipients      Recipient[]
+  events          Event[]
+  reminderJobs    ReminderJob[]
+  messageLogs     MessageLog[]
+  idempotencyKeys IdempotencyKey[]
+
+  @@map("tenants")
+}
+
+model Member {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  email     String
+  role      String   @default("member")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("members")
+}
+
+model Recipient {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  phone     String // E.164
+  locale    String   @default("en")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  events Event[]
+
+  // A phone is unique WITHIN a tenant, not globally — classic tenant scoping.
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+  @@map("recipients")
+}
+
+enum EventStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// An Event is whatever the reminder is about — an appointment, booking,
+// reservation, class, service visit, due date. The engine doesn't care which.
+model Event {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @map("tenant_id") @db.Uuid
+  recipientId String      @map("recipient_id") @db.Uuid
+  memberId    String?     @map("member_id") @db.Uuid
+  startsAt    DateTime    @map("starts_at") @db.Timestamptz(6) // absolute instant; local time via tenant.timezone
+  status      EventStatus @default(SCHEDULED)
+  notes       String?
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  recipient    Recipient     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  reminderJobs ReminderJob[]
+  messageLogs  MessageLog[]
+
+  @@index([tenantId, startsAt])
+  @@index([tenantId, status])
+  @@map("events")
+}
+
+enum ReminderKind {
+  T24H
+  T2H
+}
+
+enum ReminderState {
+  PENDING // row created, not yet enqueued
+  SCHEDULED // delayed BullMQ job enqueued
+  SENDING // a worker picked it up
+  SENT // provider accepted it
+  FAILED // transient failure — will retry
+  DEAD // retries exhausted → dead-letter
+  CANCELLED // event confirmed/cancelled before it fired
+}
+
+model ReminderJob {
+  id        String        @id @default(uuid()) @db.Uuid
+  tenantId  String        @map("tenant_id") @db.Uuid
+  eventId   String        @map("event_id") @db.Uuid
+  kind      ReminderKind
+  state     ReminderState @default(PENDING)
+  attempts  Int           @default(0)
+  runAt     DateTime      @map("run_at") @db.Timestamptz(6)
+  bullJobId String?       @map("bull_job_id")
+  lastError String?       @map("last_error")
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // SCHEDULING IDEMPOTENCY: at most one reminder of each kind per event,
+  // so a retried "create event" can never double-schedule.
+  @@unique([eventId, kind])
+  @@index([tenantId, state])
+  @@index([runAt])
+  @@map("reminder_jobs")
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+model MessageLog {
+  id            String           @id @default(uuid()) @db.Uuid
+  tenantId      String           @map("tenant_id") @db.Uuid
+  eventId       String?          @map("event_id") @db.Uuid
+  reminderJobId String?          @map("reminder_job_id") @db.Uuid
+  direction     MessageDirection
+  providerMsgId String?          @map("provider_msg_id")
+  status        MessageStatus
+  body          String?
+  error         String?
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event  Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  // provider_msg_id is unique per tenant (when present) → dedupes provider status
+  // callbacks and inbound webhooks. Fresh outbound rows have NULL here, and
+  // Postgres treats NULLs as distinct, so they don't collide before an id lands.
+  @@unique([tenantId, providerMsgId])
+  @@index([tenantId, status])
+  @@index([eventId])
+  @@map("message_log")
+}
+
+enum IdempotencyScope {
+  API_REQUEST // dedupes client POSTs via the Idempotency-Key header   (used in M1)
+  SEND // dedupes outbound sends: (event_id, kind)              (used in M4)
+  INBOUND // dedupes inbound webhooks: (provider_msg_id)            (used in M5)
+}
+
+// One table, three idempotency concerns, separated by `scope`. Each scope's
+// uniqueness is enforced by its own composite unique; the columns a scope does
+// not use stay NULL, and Postgres' "NULLs are distinct" rule keeps the three
+// scopes from ever colliding with one another.
+model IdempotencyKey {
+  id       String           @id @default(uuid()) @db.Uuid
+  tenantId String           @map("tenant_id") @db.Uuid
+  scope    IdempotencyScope
+
+  // API_REQUEST — replay the first response verbatim on a retried POST.
+  requestKey     String? @map("request_key")
+  responseStatus Int?    @map("response_status")
+  responseBody   Json?   @map("response_body")
+
+  // SEND — (event_id, kind)
+  eventId String?       @map("event_id") @db.Uuid
+  kind    ReminderKind?
+
+  // INBOUND — (provider_msg_id)
+  providerMsgId String? @map("provider_msg_id")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, scope, requestKey], name: "uq_idem_api")
+  @@unique([tenantId, scope, eventId, kind], name: "uq_idem_send")
+  @@unique([tenantId, scope, providerMsgId], name: "uq_idem_inbound")
+  @@index([tenantId, scope])
+  @@map("idempotency_keys")
+}

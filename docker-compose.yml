@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: syncin
+      POSTGRES_PASSWORD: syncin
+      POSTGRES_DB: syncin
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U syncin -d syncin"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://syncin:syncin@postgres:5432/syncin?schema=public"
+      REDIS_URL: "redis://redis:6379"
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      PROVIDER: "mock"
+      LOG_LEVEL: "info"
+    ports:
+      - "3000:3000"
+    # For M1: push schema (no migration files yet), seed a demo tenant, then boot.
+    command: >
+      sh -c "npx prisma db push --skip-generate &&
+             npm run seed &&
+             npm start"
+
+volumes:
+  pgdata:
