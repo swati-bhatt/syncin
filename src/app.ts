@@ -4,6 +4,7 @@ import { prisma } from './db/prisma';
 import { createProvider } from './providers';
 import { tenantHook } from './plugins/tenant';
 import eventRoutes from './modules/events/event.routes';
+import { redisConnection } from './queues/connection';
 import { AppError } from './lib/errors';
 
 export async function buildApp() {
@@ -28,6 +29,7 @@ export async function buildApp() {
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => {
     await prisma.$queryRaw`SELECT 1`;
+    await redisConnection.ping();
     return { status: 'ready' };
   });
 

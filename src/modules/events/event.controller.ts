@@ -1,7 +1,8 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, ReminderJob } from '@prisma/client';
 import type { MessageProvider } from '../../providers/provider';
 import { EventService } from './event.service';
+import { ReminderScheduler } from '../reminders/reminder.scheduler';
 import { IdempotencyService } from '../../lib/idempotency';
 
 interface CreateBody {
@@ -11,14 +12,17 @@ interface CreateBody {
   memberId?: string;
 }
 
-function serializeEvent(e: {
-  id: string;
-  status: string;
-  startsAt: Date;
-  notes: string | null;
-  createdAt: Date;
-  recipient?: { id: string; name: string; phone: string } | null;
-}) {
+function serializeEvent(
+  e: {
+    id: string;
+    status: string;
+    startsAt: Date;
+    notes: string | null;
+    createdAt: Date;
+    recipient?: { id: string; name: string; phone: string } | null;
+  },
+  reminders: ReminderJob[],
+) {
   return {
     id: e.id,
     status: e.status,
@@ -27,12 +31,17 @@ function serializeEvent(e: {
     recipient: e.recipient
       ? { id: e.recipient.id, name: e.recipient.name, phone: e.recipient.phone }
       : undefined,
+    reminders: reminders.map((r) => ({
+      kind: r.kind,
+      runAt: r.runAt.toISOString(),
+      state: r.state,
+    })),
     createdAt: e.createdAt.toISOString(),
   };
 }
 
 export function eventController(deps: { prisma: PrismaClient; provider: MessageProvider }) {
-  const service = new EventService(deps.prisma);
+  const service = new EventService(deps.prisma, new ReminderScheduler(deps.prisma));
   const idempotency = new IdempotencyService(deps.prisma);
 
   return {
@@ -57,8 +66,8 @@ export function eventController(deps: { prisma: PrismaClient; provider: MessageP
         }
       }
 
-      const event = await service.createEvent(tenant, req.body as CreateBody);
-      const body = serializeEvent(event);
+      const { event, reminders } = await service.createEvent(tenant, req.body as CreateBody);
+      const body = serializeEvent(event, reminders);
 
       if (idemKey) await idempotency.complete(tenant.id, idemKey, 201, body);
 

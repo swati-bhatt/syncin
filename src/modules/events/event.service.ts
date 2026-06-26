@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { BadRequest, UnprocessableEntity } from '../../lib/errors';
+import { ReminderScheduler } from '../reminders/reminder.scheduler';
 
 interface CreateInput {
   recipient: { name: string; phone: string };
@@ -15,7 +16,10 @@ interface TenantCtx {
 }
 
 export class EventService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(
+    private prisma: PrismaClient,
+    private scheduler: ReminderScheduler,
+  ) {}
 
   async createEvent(tenant: TenantCtx, input: CreateInput) {
     const startsAt = new Date(input.startsAt);
@@ -26,8 +30,10 @@ export class EventService {
       throw new UnprocessableEntity('startsAt must be in the future');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // Find-or-create the recipient WITHIN this tenant (phone is unique per tenant).
+    // Source of truth first: persist the event AND its PENDING reminder rows in
+    // ONE transaction, so we never schedule a reminder for an event that didn't
+    // commit (and never lose reminders for one that did).
+    const { event, planned } = await this.prisma.$transaction(async (tx) => {
       const recipient = await tx.recipient.upsert({
         where: { tenantId_phone: { tenantId: tenant.id, phone: input.recipient.phone } },
         update: { name: input.recipient.name },
@@ -49,20 +55,22 @@ export class EventService {
         include: { recipient: true },
       });
 
-      // ───────────────────────── Milestone 2 seam ─────────────────────────
-      // Compute reminder fire-times in tenant.timezone:
-      //     T-24h = startsAt − 24h,  T-2h = startsAt − 2h
-      // then enqueue two BullMQ DELAYED jobs and write a ReminderJob row
-      // (state=SCHEDULED, bullJobId) per kind. The @@unique([eventId, kind])
-      // on reminder_jobs is the scheduling-idempotency guard.
-      //
-      // Enqueue happens AFTER commit (a queue write can't be transactional with
-      // Postgres); a periodic reconciliation sweep re-enqueues any ReminderJob
-      // left in PENDING, so a crash between commit and enqueue self-heals
-      // instead of silently losing a reminder (outbox pattern).
-      //
-      // Milestone 1 only persists the event.
-      return event;
+      // T-24h and T-2h, recorded as PENDING ReminderJob rows (future ones only).
+      const planned = await this.scheduler.plan(tx, event);
+      return { event, planned };
     });
+
+    // Enqueue the BullMQ delayed jobs AFTER the commit — a queue write can't be
+    // transactional with Postgres. If this throws (e.g. Redis down) we leave the
+    // rows PENDING for a reconciliation sweep rather than failing the request;
+    // the event itself is safely persisted (transactional-outbox pattern).
+    let reminders = planned;
+    try {
+      reminders = await this.scheduler.enqueue(planned);
+    } catch (err) {
+      console.error('[reminders] enqueue failed; rows left PENDING for reconciliation:', err);
+    }
+
+    return { event, reminders };
   }
 }
