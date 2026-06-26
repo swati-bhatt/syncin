@@ -5,6 +5,7 @@ import { createProvider } from './providers';
 import { tenantHook } from './plugins/tenant';
 import eventRoutes from './modules/events/event.routes';
 import reminderRoutes from './modules/reminders/reminder.routes';
+import inboundRoutes from './modules/inbound/inbound.routes';
 import { redisConnection } from './queues/connection';
 import { AppError } from './lib/errors';
 
@@ -36,6 +37,10 @@ export async function buildApp() {
 
   const provider = createProvider();
   app.log.info(`message provider = ${provider.name}`);
+
+  // Inbound provider webhooks (customer replies). Called by the provider, not a
+  // tenant — no Bearer auth; the tenant is in the path. (Prod: verify signature.)
+  await app.register(inboundRoutes, { prisma });
 
   // Everything under /v1 requires a valid tenant API key.
   await app.register(

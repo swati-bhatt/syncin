@@ -4,6 +4,7 @@ import {
   MessageStatus,
   ReminderState,
   IdempotencyScope,
+  EventStatus,
 } from '@prisma/client';
 import type { MessageProvider } from '../../providers/provider';
 import type { ReminderJobData } from '../../queues/reminder.queue';
@@ -22,6 +23,16 @@ export class ReminderSender {
       include: { event: { include: { recipient: true } }, tenant: true },
     });
     if (!job) return; // reminder was cancelled/deleted — nothing to do
+
+    // The customer cancelled (e.g. replied "NO")? Don't remind about a cancelled
+    // appointment — skip and mark the reminder cancelled.
+    if (job.event.status === EventStatus.CANCELLED) {
+      await this.prisma.reminderJob.update({
+        where: { id: job.id },
+        data: { state: ReminderState.CANCELLED },
+      });
+      return { cancelled: true };
+    }
 
     // NO DOUBLE-SEND. A SEND idempotency key (unique on tenant+event+kind) records
     // that this reminder was already delivered. The queue is at-LEAST-once: a job

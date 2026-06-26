@@ -26,8 +26,9 @@ export function startReminderWorker() {
     async (job) => {
       try {
         const result = await sender.send(job.data);
-        if (result && 'deduped' in result) {
-          console.log(`[worker] SKIP already-sent ${job.data.kind} (${job.data.reminderJobId})`);
+        if (result && ('deduped' in result || 'cancelled' in result)) {
+          const why = 'deduped' in result ? 'already-sent' : 'event-cancelled';
+          console.log(`[worker] SKIP (${why}) ${job.data.kind} (${job.data.reminderJobId})`);
         } else {
           console.log(`[worker] SENT ${job.data.kind} (${job.data.reminderJobId})`);
         }
