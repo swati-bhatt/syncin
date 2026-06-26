@@ -4,6 +4,7 @@ import { prisma } from './db/prisma';
 import { createProvider } from './providers';
 import { tenantHook } from './plugins/tenant';
 import eventRoutes from './modules/events/event.routes';
+import reminderRoutes from './modules/reminders/reminder.routes';
 import { redisConnection } from './queues/connection';
 import { AppError } from './lib/errors';
 
@@ -41,6 +42,7 @@ export async function buildApp() {
     async (v1) => {
       v1.addHook('onRequest', tenantHook(prisma));
       await v1.register(eventRoutes, { prisma, provider });
+      await v1.register(reminderRoutes, { prisma });
     },
     { prefix: '/v1' },
   );

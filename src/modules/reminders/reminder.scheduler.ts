@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient, ReminderKind, ReminderState, ReminderJob } from '@prisma/client';
 import { reminderQueue, type ReminderJobData } from '../../queues/reminder.queue';
+import { env } from '../../config/env';
 
 // Reminder fire-times are fixed offsets before the event's absolute start instant,
 // so they're timezone-independent (T-24h before an instant is that instant minus
@@ -57,8 +58,10 @@ export class ReminderScheduler {
       const job = await reminderQueue.add(r.kind, data, {
         delay,
         jobId: r.id,
+        attempts: env.REMINDER_MAX_ATTEMPTS, // retry a failed send up to this many times
+        backoff: { type: 'custom' }, // wait time computed by the worker's jitter strategy
         removeOnComplete: true,
-        removeOnFail: false,
+        removeOnFail: false, // keep failed jobs = the dead-letter set, for replay
       });
       out.push(
         await this.prisma.reminderJob.update({
