@@ -6,6 +6,7 @@ import { tenantHook } from './plugins/tenant';
 import eventRoutes from './modules/events/event.routes';
 import reminderRoutes from './modules/reminders/reminder.routes';
 import inboundRoutes from './modules/inbound/inbound.routes';
+import metricsRoutes from './modules/metrics/metrics.routes';
 import { redisConnection } from './queues/connection';
 import { AppError } from './lib/errors';
 
@@ -41,6 +42,9 @@ export async function buildApp() {
   // Inbound provider webhooks (customer replies). Called by the provider, not a
   // tenant — no Bearer auth; the tenant is in the path. (Prod: verify signature.)
   await app.register(inboundRoutes, { prisma });
+
+  // Engine metrics (no auth, like /health) — queue depth, states, retries, DLQ.
+  await app.register(metricsRoutes, { prisma });
 
   // Everything under /v1 requires a valid tenant API key.
   await app.register(

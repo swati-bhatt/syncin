@@ -16,4 +16,11 @@ export const env = {
   REMINDER_MAX_ATTEMPTS: Number(process.env.REMINDER_MAX_ATTEMPTS ?? 5),
   REMINDER_BACKOFF_BASE_MS: Number(process.env.REMINDER_BACKOFF_BASE_MS ?? 1000),
   REMINDER_BACKOFF_CAP_MS: Number(process.env.REMINDER_BACKOFF_CAP_MS ?? 15000),
+
+  // Mock-provider failure-injection rig (Milestone 6). Knobs for experiments;
+  // all default to "off" so normal runs behave like a reliable provider.
+  MOCK_FAILURE_RATE: Number(process.env.MOCK_FAILURE_RATE ?? 0), // 0..1 chance a send fails
+  MOCK_PERMANENT_RATE: Number(process.env.MOCK_PERMANENT_RATE ?? 0), // 0..1 of failures that are permanent
+  MOCK_LATENCY_MS: Number(process.env.MOCK_LATENCY_MS ?? 0), // delay added to every send
+  MOCK_RECOVER_AFTER_MS: Number(process.env.MOCK_RECOVER_AFTER_MS ?? 0), // outage that clears after N ms uptime
 };

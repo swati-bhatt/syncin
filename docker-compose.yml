@@ -44,6 +44,11 @@ services:
       HOST: "0.0.0.0"
       PROVIDER: "mock"
       LOG_LEVEL: "info"
+      # Milestone 6 failure-injection knobs (default off; set per experiment run).
+      MOCK_FAILURE_RATE: "${MOCK_FAILURE_RATE:-0}"
+      MOCK_PERMANENT_RATE: "${MOCK_PERMANENT_RATE:-0}"
+      MOCK_LATENCY_MS: "${MOCK_LATENCY_MS:-0}"
+      MOCK_RECOVER_AFTER_MS: "${MOCK_RECOVER_AFTER_MS:-0}"
     ports:
       - "${APP_PORT:-3000}:3000"
     # For M1: push schema (no migration files yet), seed a demo tenant, then boot.
