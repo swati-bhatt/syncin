@@ -9,10 +9,19 @@ export function createProvider(): MessageProvider {
     case 'mock':
       return new MockProvider();
     // case 'twilio':
-    //   return new TwilioProvider();  // Milestone 7 — sandbox adapter for the demo GIF
+    //   return new TwilioProvider();  // Milestone 8 — sandbox adapter for the demo
     default:
       throw new Error(`Unknown PROVIDER "${env.PROVIDER}" (expected "mock" or "twilio")`);
   }
+}
+
+// Process-wide singleton: the API, the worker, and /metrics must all observe the
+// SAME provider instance — its failure counters and per-attempt log are the
+// experiment data (Milestone 7).
+let instance: MessageProvider | null = null;
+export function getProvider(): MessageProvider {
+  if (!instance) instance = createProvider();
+  return instance;
 }
 
 export type { MessageProvider } from './provider';

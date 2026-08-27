@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import { env } from './config/env';
 import { prisma } from './db/prisma';
-import { createProvider } from './providers';
+import { getProvider } from './providers';
 import { tenantHook } from './plugins/tenant';
 import eventRoutes from './modules/events/event.routes';
 import reminderRoutes from './modules/reminders/reminder.routes';
@@ -36,7 +36,7 @@ export async function buildApp() {
     return { status: 'ready' };
   });
 
-  const provider = createProvider();
+  const provider = getProvider();
   app.log.info(`message provider = ${provider.name}`);
 
   // Inbound provider webhooks (customer replies). Called by the provider, not a

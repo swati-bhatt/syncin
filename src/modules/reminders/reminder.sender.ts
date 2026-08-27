@@ -34,6 +34,17 @@ export class ReminderSender {
       return { cancelled: true };
     }
 
+    // Never remind about an event that already started — e.g. jobs that sat in
+    // the queue across an outage longer than the reminder's lead time. (Found in
+    // the wild: reminders scheduled in June fired on an August boot.)
+    if (job.event.startsAt.getTime() <= Date.now()) {
+      await this.prisma.reminderJob.update({
+        where: { id: job.id },
+        data: { state: ReminderState.CANCELLED, lastError: 'stale: event already started' },
+      });
+      return { stale: true };
+    }
+
     // NO DOUBLE-SEND. A SEND idempotency key (unique on tenant+event+kind) records
     // that this reminder was already delivered. The queue is at-LEAST-once: a job
     // can run twice (e.g. the worker crashed right after sending, so BullMQ

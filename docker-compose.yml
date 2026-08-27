@@ -44,6 +44,11 @@ services:
       HOST: "0.0.0.0"
       PROVIDER: "mock"
       LOG_LEVEL: "info"
+      # Retry policy (the experiment axis — see reminder.worker.ts).
+      REMINDER_BACKOFF_STRATEGY: "${REMINDER_BACKOFF_STRATEGY:-full_jitter}"
+      REMINDER_MAX_ATTEMPTS: "${REMINDER_MAX_ATTEMPTS:-5}"
+      REMINDER_BACKOFF_BASE_MS: "${REMINDER_BACKOFF_BASE_MS:-1000}"
+      REMINDER_BACKOFF_CAP_MS: "${REMINDER_BACKOFF_CAP_MS:-15000}"
       # Milestone 6 failure-injection knobs (default off; set per experiment run).
       MOCK_FAILURE_RATE: "${MOCK_FAILURE_RATE:-0}"
       MOCK_PERMANENT_RATE: "${MOCK_PERMANENT_RATE:-0}"
