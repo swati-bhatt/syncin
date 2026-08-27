@@ -94,15 +94,29 @@ Then `make logs`, `make psql`, `make down`, `make clean`. Full list in [COMMANDS
 4. On failure → retry with jittered backoff; after N attempts (or a permanent error) → `DEAD` (dead-letter).
 5. The customer replies → `POST /webhooks/:tenantId/inbound` → deduped, matched to their appointment, `CONFIRMED` / `CANCELLED`.
 
-## Measurement study *(in progress)*
+## Measurement study — [full report](experiments/REPORT.md)
 
-The failure-injection rig and `/metrics` exist to run controlled reliability experiments. The mock
-provider takes env knobs — `MOCK_FAILURE_RATE`, `MOCK_PERMANENT_RATE`, `MOCK_LATENCY_MS`,
-`MOCK_RECOVER_AFTER_MS` — so each run is just a different configuration.
+72 controlled runs (isolated Docker stacks, 100 synchronized reminders each) compare six
+retry-backoff strategies under steady transient failure and a 60-second provider outage.
+Headline results:
 
-A sample run: **20 reminders at a 40% send-failure rate → 17 delivered (85%)**, where a no-retry
-system would land ~12 (60%), at a cost of 16 retries and 3 dead-lettered. A writeup comparing backoff
-strategies (exponential vs full-jitter vs decorrelated-jitter) across failure rates is planned.
+- **Steady failure: strategy choice barely matters.** Delivery ≈ 1−fⁿ and provider cost
+  ≈ 1/(1−f) regardless of waits — backoff only shifts tail latency (p99 0.85 s for
+  immediate retry vs 15–17 s for exponential/decorrelated at 50% failure).
+- **Outage: strategy choice is everything.** With 8 attempts against a 60 s outage:
+  immediate & fixed retry deliver **0%**, full-jitter (the industry default) **32%**,
+  decorrelated 73%, exponential **100%** — survival is governed by the *sum of waits vs
+  outage length*, which full jitter halves in expectation.
+- **Exponential survives but stampedes**: its surviving cohort hits the recovered
+  provider as one synchronized 100-attempts/s wave.
+- **Equal-jitter (exp/2 + U(0, exp/2)) gets both**: 100% survival *and* a ~5× smaller
+  recovery herd (~20 attempts/s).
+
+![outage survival](experiments/results/figures/fig3_outage.png)
+![retry herd](experiments/results/figures/fig4_herd.png)
+
+Raw per-run data, the harness, and the analysis script live under [`experiments/`](experiments/);
+`./experiments/sweep.sh 3` reproduces the whole study on a laptop in about an hour.
 
 ## Project structure
 
@@ -134,7 +148,7 @@ src/
 
 ## Roadmap
 
-- [ ] Measurement paper — retry/backoff comparison (in progress)
+- [x] Measurement study — retry/backoff comparison ([report](experiments/REPORT.md))
 - [ ] Twilio WhatsApp sandbox adapter (provider interface is ready)
 - [ ] Committed Prisma migrations
 - [ ] Minimal dashboard UI
