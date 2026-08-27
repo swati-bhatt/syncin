@@ -10,12 +10,12 @@ set -uo pipefail
 P=${1:-3}
 DIR="$(cd "$(dirname "$0")" && pwd)"
 JOBS=$(mktemp)
-for s in none fixed exp full_jitter decorrelated; do
+for s in none fixed exp full_jitter equal_jitter decorrelated; do
   for f in 0.1 0.3 0.5; do
     for r in 1 2 3; do echo "steady $s $f $r" >> "$JOBS"; done
   done
 done
-for s in none fixed exp full_jitter decorrelated; do
+for s in none fixed exp full_jitter equal_jitter decorrelated; do
   for r in 1 2 3; do echo "outage $s 0 $r" >> "$JOBS"; done
 done
 TOTAL=$(wc -l < "$JOBS" | tr -d ' ')

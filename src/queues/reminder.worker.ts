@@ -15,6 +15,8 @@ import { ReminderSender } from '../modules/reminders/reminder.sender';
 //   exp           capped exponential 2^(n-1)·base, no jitter — deterministic, so a
 //                 cohort that failed together retries in lockstep (thundering herd)
 //   full_jitter   random in [0, capped exponential] (AWS-recommended default)
+//   equal_jitter  exp/2 + random in [0, exp/2] — keeps a deterministic floor (half
+//                 the schedule) while still spreading the herd; our proposed middle
 //   decorrelated  min(cap, rand(base, 3·prev)) — jitter with memory of the last wait
 const lastDelay = new Map<string, number>(); // decorrelated state, keyed by bull job id
 
@@ -29,6 +31,8 @@ export function computeBackoff(strategy: string, n: number, key: string): number
       return base;
     case 'exp':
       return exp;
+    case 'equal_jitter':
+      return Math.floor(exp / 2 + Math.random() * (exp / 2));
     case 'decorrelated': {
       const prev = lastDelay.get(key) ?? base;
       const d = Math.min(cap, base + Math.random() * Math.max(0, prev * 3 - base));

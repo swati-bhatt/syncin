@@ -20,10 +20,11 @@ FIGD = os.path.join(OUTD, "figures")
 os.makedirs(FIGD, exist_ok=True)
 
 # ── style: validated categorical palette (dataviz reference, light mode) ──
-STRATS = ["none", "fixed", "exp", "full_jitter", "decorrelated"]
+STRATS = ["none", "fixed", "exp", "full_jitter", "equal_jitter", "decorrelated"]
 LABELS = {"none": "none", "fixed": "fixed", "exp": "exponential",
-          "full_jitter": "full jitter", "decorrelated": "decorrelated"}
-COLORS = dict(zip(STRATS, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]))
+          "full_jitter": "full jitter", "equal_jitter": "equal jitter",
+          "decorrelated": "decorrelated"}
+COLORS = dict(zip(STRATS, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]))
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
