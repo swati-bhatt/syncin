@@ -64,30 +64,26 @@ DEAD=$(psqlc "select count(*) from reminder_jobs where state='DEAD';")
 RETRIES=$(psqlc "select coalesce(sum(attempts),0) from reminder_jobs;")
 # Delivery latency per delivered reminder: message logged − reminder due.
 LATENCIES=$(psqlc "select coalesce(json_agg(round(extract(epoch from (ml.created_at - rj.run_at))::numeric,3)),'[]') from message_log ml join reminder_jobs rj on rj.id = ml.reminder_job_id where ml.direction='OUTBOUND';")
-METRICS=$(curl -sS "$BASE/metrics")
-ATTEMPTS=$(curl -sS "$BASE/metrics/attempts")
+MET_F=$(mktemp); ATT_F=$(mktemp)
+curl -sS "$BASE/metrics" -o "$MET_F"
+curl -sS "$BASE/metrics/attempts" -o "$ATT_F"
 
-CONFIG_JSON=$(python3 - "$STRATEGY" "$FAILURE" "$PERM" "$RECOVER" "$LAT" "$ATT" "$N" "$REPEAT" <<'PY'
+CONFIG_JSON=$(python3 -c "import json,sys;print(json.dumps({'strategy':sys.argv[1],'failure_rate':float(sys.argv[2]),'permanent_rate':float(sys.argv[3]),'recover_after_ms':int(sys.argv[4]),'latency_ms':int(sys.argv[5]),'max_attempts':int(sys.argv[6]),'n_reminders':int(sys.argv[7]),'repeat':int(sys.argv[8])}))" \
+  "$STRATEGY" "$FAILURE" "$PERM" "$RECOVER" "$LAT" "$ATT" "$N" "$REPEAT")
+
+python3 - "$OUT" "$CONFIG_JSON" "$SENT" "$DEAD" "$RETRIES" "$TIMED_OUT" "$T_CREATE_MS" "$LATENCIES" "$MET_F" "$ATT_F" <<'PY2'
 import json, sys
-s, f, p, rec, lat, att, n, rep = sys.argv[1:9]
-print(json.dumps({"strategy": s, "failure_rate": float(f), "permanent_rate": float(p),
-                  "recover_after_ms": int(rec), "latency_ms": int(lat),
-                  "max_attempts": int(att), "n_reminders": int(n), "repeat": int(rep)}))
-PY
-)
-{ echo "$METRICS"; echo "$ATTEMPTS"; } | python3 - "$OUT" "$CONFIG_JSON" "$SENT" "$DEAD" "$RETRIES" "$TIMED_OUT" "$T_CREATE_MS" "$LATENCIES" <<'PY'
-import json, sys
-out, cfg, sent, dead, retries, timed_out, t_create, lats = sys.argv[1:9]
-metrics = json.loads(sys.stdin.readline())
-attempts = json.loads(sys.stdin.readline())
+out, cfg, sent, dead, retries, timed_out, t_create, lats, met_f, att_f = sys.argv[1:11]
 doc = {
   "config": json.loads(cfg),
   "result": {"sent": int(sent), "dead": int(dead), "retries": int(retries),
              "timed_out": timed_out == "true", "t_create_ms": int(t_create)},
   "latencies_s": json.loads(lats),
-  "metrics": metrics,
-  "provider_attempts": attempts["attempts"],
+  "metrics": json.load(open(met_f)),
+  "provider_attempts": json.load(open(att_f))["attempts"],
 }
-with open(out, "w") as fh: json.dump(doc, fh, indent=1)
+with open(out, "w") as fh:
+    json.dump(doc, fh, indent=1)
 print(f"[saved] {out}  sent={sent} dead={dead} retries={retries}")
-PY
+PY2
+rm -f "$MET_F" "$ATT_F"
