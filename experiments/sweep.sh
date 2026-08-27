@@ -23,15 +23,18 @@ echo "sweep: $TOTAL runs across $P slots"
 
 run_slot() { # consume every P'th job, offset by slot id
   local slot=$1 i=0
-  while IFS=' ' read -r kind s f r; do
+  # read via fd 9, and give the runs /dev/null stdin — `docker compose exec`
+  # attaches stdin and would otherwise eat the rest of the job list (the classic
+  # while-read pitfall; it cost us 57 of 60 runs the first time).
+  while IFS=' ' read -u 9 -r kind s f r; do
     i=$((i+1)); [ $(( (i-1) % P )) -ne "$slot" ] && continue
     if [ "$kind" = "outage" ]; then
       RECOVER_AFTER_MS=60000 MAX_ATTEMPTS=8 LEAD_S=25 \
-        "$DIR/run-one.sh" "$s" "$f" "$r" "$slot" || echo "[slot $slot] FAILED: $s $f $r"
+        "$DIR/run-one.sh" "$s" "$f" "$r" "$slot" </dev/null || echo "[slot $slot] FAILED: $s $f $r"
     else
-      "$DIR/run-one.sh" "$s" "$f" "$r" "$slot" || echo "[slot $slot] FAILED: $s $f $r"
+      "$DIR/run-one.sh" "$s" "$f" "$r" "$slot" </dev/null || echo "[slot $slot] FAILED: $s $f $r"
     fi
-  done < "$JOBS"
+  done 9< "$JOBS"
 }
 for slot in $(seq 0 $((P-1))); do run_slot "$slot" & done
 wait

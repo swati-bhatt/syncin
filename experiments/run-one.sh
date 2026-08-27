@@ -26,6 +26,8 @@ APP_PORT=$((3100 + SLOT)); PG_PORT=$((5600 + SLOT)); RD_PORT=$((6700 + SLOT))
 BASE="http://localhost:$APP_PORT"; KEY="sk_demo_tenant_key_123"
 OUT="$DIR/experiments/results/raw/${STRATEGY}_f${FAILURE}_p${PERM}_rec${RECOVER}_att${ATT}_rep${REPEAT}.json"
 
+if [ -e "$OUT" ]; then echo "[skip] $OUT exists"; exit 0; fi  # resumable
+
 dc() { docker compose -p "$PROJ" -f "$DIR/docker-compose.yml" "$@"; }
 psqlc() { dc exec -T postgres psql -U syncin -d syncin -P pager=off -tAc "$1"; }
 cleanup() { dc down -v >/dev/null 2>&1 || true; }
