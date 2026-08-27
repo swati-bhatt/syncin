@@ -16,7 +16,10 @@ import matplotlib.pyplot as plt
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "results", "raw")
 OUTD = os.path.join(HERE, "results")
-FIGD = os.path.join(OUTD, "figures")
+# THEME=dark renders the same figures stepped for a dark surface (used by the
+# web version of the report, which follows the reader's theme).
+THEME = os.environ.get("THEME", "light")
+FIGD = os.path.join(OUTD, "figures" if THEME == "light" else "figures-dark")
 os.makedirs(FIGD, exist_ok=True)
 
 # ── style: validated categorical palette (dataviz reference, light mode) ──
@@ -24,8 +27,12 @@ STRATS = ["none", "fixed", "exp", "full_jitter", "equal_jitter", "decorrelated"]
 LABELS = {"none": "none", "fixed": "fixed", "exp": "exponential",
           "full_jitter": "full jitter", "equal_jitter": "equal jitter",
           "decorrelated": "decorrelated"}
-COLORS = dict(zip(STRATS, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]))
-SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
+if THEME == "dark":
+    COLORS = dict(zip(STRATS, ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#4fb04f"]))
+    SURFACE, INK, INK2, GRID = "#1a1a19", "#ffffff", "#c3c2b7", "#33332f"
+else:
+    COLORS = dict(zip(STRATS, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]))
+    SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
     "text.color": INK, "axes.edgecolor": GRID, "axes.labelcolor": INK2,
