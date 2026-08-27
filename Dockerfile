@@ -9,9 +9,10 @@ RUN apt-get update -y \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# Install deps first (layer cached unless package.json changes)
-COPY package.json ./
-RUN npm install
+# Install deps first (layer cached unless the manifests change). npm ci installs
+# EXACTLY what package-lock.json pins — reproducible builds, no silent drift.
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # Generate the Prisma client (needs the schema)
 COPY prisma ./prisma

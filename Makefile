@@ -44,3 +44,7 @@ ps:
 # psql: open a psql shell on the Syncin DB
 psql:
 	$(DC) exec postgres psql -U syncin -d syncin
+
+# typecheck: run tsc --noEmit inside the app container
+typecheck:
+	$(DC) exec app npx tsc --noEmit
