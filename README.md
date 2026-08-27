@@ -20,7 +20,7 @@ Sending a reminder is easy. Sending it **reliably under failure** is the point o
 - **Multi-tenancy** — every row scoped by `tenant_id`; the tenant is derived from a verified API key, never from client input.
 - **Idempotency, two layers** — Stripe-style request idempotency on the API (no duplicate bookings on retry), and a send-side guard so the *at-least-once* queue never double-sends a reminder.
 - **Delayed scheduling** — two reminders (T-24h, T-2h) computed per appointment and enqueued as delayed jobs.
-- **Retries + exponential backoff + full jitter** — transient send failures retry on a jittered schedule (no thundering herd on a recovering provider).
+- **Retries + equal-jitter exponential backoff** — a deterministic floor keeps outage coverage, the jittered half kills the thundering herd; this default was *chosen by the project's own measurement study* (below).
 - **Dead-letter queue + replay** — permanently-failing sends are parked, inspectable, and replayable once the issue clears.
 - **Inbound replies** — customers reply `YES`/`NO` via webhook; the appointment is confirmed/cancelled (deduped), and a cancel stops its pending reminders.
 - **Graceful shutdown** — `SIGTERM` drains the worker and closes connections cleanly.
@@ -50,7 +50,7 @@ and update the appointment.
 
 | Failure | Engine's response |
 |---|---|
-| Transient send failure | retried with exponential backoff + **full jitter** |
+| Transient send failure | retried on an **equal-jitter** exponential schedule (study-selected default; 5 strategies switchable via env) |
 | Permanent / retries exhausted | **dead-lettered** (parked, inspectable), replayable via `POST /v1/reminders/replay` |
 | Worker crashes mid-job | BullMQ redelivers the job (at-least-once); the **send-idempotency key** prevents a double-send |
 | Duplicate inbound webhook | deduped on the provider message id |

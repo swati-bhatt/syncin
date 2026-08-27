@@ -45,7 +45,7 @@ services:
       PROVIDER: "mock"
       LOG_LEVEL: "info"
       # Retry policy (the experiment axis — see reminder.worker.ts).
-      REMINDER_BACKOFF_STRATEGY: "${REMINDER_BACKOFF_STRATEGY:-full_jitter}"
+      REMINDER_BACKOFF_STRATEGY: "${REMINDER_BACKOFF_STRATEGY:-equal_jitter}"
       REMINDER_MAX_ATTEMPTS: "${REMINDER_MAX_ATTEMPTS:-5}"
       REMINDER_BACKOFF_BASE_MS: "${REMINDER_BACKOFF_BASE_MS:-1000}"
       REMINDER_BACKOFF_CAP_MS: "${REMINDER_BACKOFF_CAP_MS:-15000}"
@@ -56,9 +56,9 @@ services:
       MOCK_RECOVER_AFTER_MS: "${MOCK_RECOVER_AFTER_MS:-0}"
     ports:
       - "${APP_PORT:-3000}:3000"
-    # For M1: push schema (no migration files yet), seed a demo tenant, then boot.
+    # Apply committed migrations, seed the demo tenant (idempotent), then boot.
     command: >
-      sh -c "npx prisma db push --skip-generate &&
+      sh -c "npx prisma migrate deploy &&
              npm run seed &&
              npm start"
 

@@ -17,7 +17,7 @@ export const env = {
   REMINDER_BACKOFF_BASE_MS: Number(process.env.REMINDER_BACKOFF_BASE_MS ?? 1000),
   REMINDER_BACKOFF_CAP_MS: Number(process.env.REMINDER_BACKOFF_CAP_MS ?? 15000),
   // none | fixed | exp | full_jitter | decorrelated — see reminder.worker.ts
-  REMINDER_BACKOFF_STRATEGY: process.env.REMINDER_BACKOFF_STRATEGY ?? 'full_jitter',
+  REMINDER_BACKOFF_STRATEGY: process.env.REMINDER_BACKOFF_STRATEGY ?? 'equal_jitter', // default chosen by the measurement study (experiments/REPORT.md)
 
   // Mock-provider failure-injection rig (Milestone 6). Knobs for experiments;
   // all default to "off" so normal runs behave like a reliable provider.

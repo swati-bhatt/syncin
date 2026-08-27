@@ -132,7 +132,8 @@ fail" testing does not exercise. Failure injection should include outage shapes.
 
 **Practical sizing rule.** Pick the outage duration you must survive, size
 Σ worst-case waits (and the attempt budget) to cover it, then add bounded jitter above
-a floor. In this engine that is three environment variables.
+a floor. In this engine that is three environment variables — and on the strength of these
+results, the engine's default strategy was switched from full-jitter to equal-jitter.
 
 ## 5. Threats to validity
 
