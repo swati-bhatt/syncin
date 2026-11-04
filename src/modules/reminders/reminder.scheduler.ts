@@ -15,8 +15,10 @@ export class ReminderScheduler {
   constructor(private prisma: PrismaClient) {}
 
   // INSIDE the create transaction: persist a PENDING ReminderJob for each kind
-  // whose fire-time is still in the future. Atomic with the event insert, and the
-  // @@unique([eventId, kind]) guard means a retried create can't double-schedule.
+  // whose fire-time is still in the future. Atomic with the event insert;
+  // @@unique([eventId, kind]) keeps it to one row per kind per event. (A retried
+  // create mints a new event id, so duplicate creates are stopped earlier, by the
+  // API Idempotency-Key.)
   async plan(
     tx: Prisma.TransactionClient,
     event: { id: string; tenantId: string; startsAt: Date },

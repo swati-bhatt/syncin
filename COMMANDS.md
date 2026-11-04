@@ -14,6 +14,7 @@ Run everything from this folder (`~/Desktop/x/syncin`). Docker Desktop must be r
 | `make ps` | Show container status |
 | `make psql` | Open a `psql` shell on the Syncin database |
 | `make prune` | Delete dangling (old) build images right now |
+| `make typecheck` | Run `tsc --noEmit` inside the app container (stack must be up) |
 
 Host ports default to **5433** (Postgres) / **6380** (Redis) / **3000** (app) so they
 don't clash with a local Homebrew Postgres/Redis on 5432/6379.
@@ -28,13 +29,17 @@ Seeded demo tenant API key: `sk_demo_tenant_key_123`
 curl localhost:3000/health
 curl localhost:3000/ready
 
-# create a booking  -> 201 + JSON
+# create a booking two days out  -> 201 + JSON
+# (computed date so the example never expires; startsAt must be in the future, else 422)
+START=$(date -u -v+2d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '+2 days' +%Y-%m-%dT%H:%M:%SZ)
+KEY=demo-$(date +%s)
 curl -X POST localhost:3000/v1/events \
   -H "Authorization: Bearer sk_demo_tenant_key_123" \
-  -H "Idempotency-Key: demo-001" -H "Content-Type: application/json" \
-  -d '{"recipient":{"name":"Jane Doe","phone":"+15551234567"},"startsAt":"2026-09-01T14:30:00-04:00"}'
+  -H "Idempotency-Key: $KEY" -H "Content-Type: application/json" \
+  -d "{\"recipient\":{\"name\":\"Jane Doe\",\"phone\":\"+15551234567\"},\"startsAt\":\"$START\"}"
 
-# repeat the SAME Idempotency-Key -> identical response, no duplicate
+# repeat the SAME Idempotency-Key (re-run the curl in this shell) -> identical response, no duplicate
+# a request the service rejects (e.g. 422) still consumes its key -> 409 on retry; set a fresh KEY
 ```
 
 ## Raw Docker (if you ever skip `make`)

@@ -45,10 +45,13 @@ export class ReminderSender {
       return { stale: true };
     }
 
-    // NO DOUBLE-SEND. A SEND idempotency key (unique on tenant+event+kind) records
-    // that this reminder was already delivered. The queue is at-LEAST-once: a job
-    // can run twice (e.g. the worker crashed right after sending, so BullMQ
-    // re-delivers it). We check that record first and skip if it's already there.
+    // SKIP IF ALREADY SENT. A SEND idempotency key (unique on tenant+event+kind)
+    // records that this reminder was delivered. The queue is at-LEAST-once, so a job
+    // can run twice (e.g. BullMQ re-delivers it after a worker crash); if the earlier
+    // run's success transaction committed, the record exists and we skip. A crash
+    // after the provider accepted but before that commit leaves no record — the
+    // exactly-once gap; job.id goes to the provider as its idempotency key so a
+    // provider that dedupes can close it (the mock does not).
     const alreadySent = await this.prisma.idempotencyKey.findUnique({
       where: {
         uq_idem_send: {

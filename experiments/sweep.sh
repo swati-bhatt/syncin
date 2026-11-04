@@ -2,7 +2,7 @@
 # The full measurement sweep, parallelized across isolated slots.
 #   ./experiments/sweep.sh [parallel_slots]   (default 3)
 #
-# Part A — steady failure: 5 strategies × failure {0.1,0.3,0.5} × 3 repeats
+# Part A — steady failure: 6 strategies × failure {0.1,0.3,0.5} × 3 repeats
 # Part B — outage+recovery: provider hard-down for the first 60s of uptime, 8
 #          attempts so backoff strategies can survive into recovery; herd shape
 #          and survival read from the per-attempt timestamp log.

@@ -3,7 +3,7 @@
 #
 #   ./experiments/run-one.sh <strategy> <failure_rate> <repeat> [slot]
 #
-# strategy: none | fixed | exp | full_jitter | decorrelated
+# strategy: none | fixed | exp | full_jitter | equal_jitter | decorrelated
 # slot:     0..N — each slot gets its own compose project + ports, so runs can
 #           execute in parallel without touching each other (or the dev stack).
 #

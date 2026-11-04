@@ -14,10 +14,15 @@ import { ReminderSender } from '../modules/reminders/reminder.sender';
 //   fixed         constant `base` wait
 //   exp           capped exponential 2^(n-1)·base, no jitter — deterministic, so a
 //                 cohort that failed together retries in lockstep (thundering herd)
-//   full_jitter   random in [0, capped exponential] (AWS-recommended default)
+//   full_jitter   random in [0, capped exponential]
 //   equal_jitter  exp/2 + random in [0, exp/2] — keeps a deterministic floor (half
-//                 the schedule) while still spreading the herd; our proposed middle
+//                 the schedule) while still spreading the herd
 //   decorrelated  min(cap, rand(base, 3·prev)) — jitter with memory of the last wait
+// full_jitter, equal_jitter and decorrelated follow the variants as named and compared
+// by Brooker, "Exponential Backoff And Jitter", AWS Architecture Blog (2015),
+// https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/ — they are
+// not Syncin's own. Differences: attempts are indexed from 1 (the first exp wait is
+// `base`) and waits are floored to whole ms. Unknown names fall back to full_jitter.
 const lastDelay = new Map<string, number>(); // decorrelated state, keyed by bull job id
 
 export function computeBackoff(strategy: string, n: number, key: string): number {

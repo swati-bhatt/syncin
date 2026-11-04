@@ -43,7 +43,7 @@ export async function buildApp() {
   // tenant — no Bearer auth; the tenant is in the path. (Prod: verify signature.)
   await app.register(inboundRoutes, { prisma });
 
-  // Engine metrics (no auth, like /health) — queue depth, states, retries, DLQ.
+  // Engine metrics (no auth, like /health) — queue depth, states, failed attempts, DLQ.
   await app.register(metricsRoutes, { prisma });
 
   // Everything under /v1 requires a valid tenant API key.

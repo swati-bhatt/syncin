@@ -4,7 +4,7 @@ import { getProvider } from '../../providers';
 import { MockProvider } from '../../providers/mock.provider';
 
 // Aggregated engine metrics for experiments + monitoring: queue depth, reminder
-// states, retry volume, dead-letter size, and provider-side counters. (The
+// states, failed-attempt volume, dead-letter size, and provider-side counters. (The
 // numbers Paper 1 records.)
 export class MetricsService {
   constructor(private prisma: PrismaClient) {}
