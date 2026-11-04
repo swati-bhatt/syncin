@@ -1,0 +1,1383 @@
+{
+ "generated_by": "experiments/analyze.py",
+ "definitions": {
+  "t0": "the cohort's first provider attempt in a run (all times below are seconds after t0 unless named otherwise)",
+  "recovery_bracket": "[last failed attempt, first successful attempt] after t0; recovery happened inside it. Used only for the jittered strategies, whose attempts are dense around recovery",
+  "W": "effective outage window: time from the cohort's first attempt to provider recovery",
+  "peak_recovery_load": "the most provider attempts in any 1-second sliding window at or after the cohort's first successful delivery",
+  "peak_per_survivor": "peak_recovery_load / delivered",
+  "calls_before_first_success": "provider calls before the run's first successful delivery (during the outage); all calls if nothing was delivered",
+  "peak_1s_before_first_success": "the most provider attempts in any 1-second sliding window before the first successful delivery",
+  "failed_attempts": "failed provider calls; equals result.retries in every run. retries = calls - reminders = failed - dead",
+  "binomial_se": "sqrt(f(1-f)/calls) at the configured f"
+ },
+ "checks": {
+  "runs_total": 72,
+  "runs_steady": 54,
+  "runs_outage": 18,
+  "retries_field_equals_failed_calls_all_runs": true,
+  "provider_calls_equals_attempt_log_all_runs": true,
+  "calls_minus_reminders_equals_failed_minus_dead_all_runs": true
+ },
+ "injection_validity": {
+  "configured": {
+   "0.1": {
+    "runs": 18,
+    "calls": 2013,
+    "failed": 213,
+    "observed_rate": 0.1058,
+    "observed_rate_3dp": 0.106,
+    "binomial_se": 0.0067,
+    "z": 0.87
+   },
+   "0.3": {
+    "runs": 18,
+    "calls": 2557,
+    "failed": 758,
+    "observed_rate": 0.2964,
+    "observed_rate_3dp": 0.296,
+    "binomial_se": 0.0091,
+    "z": -0.39
+   },
+   "0.5": {
+    "runs": 18,
+    "calls": 3425,
+    "failed": 1673,
+    "observed_rate": 0.4885,
+    "observed_rate_3dp": 0.488,
+    "binomial_se": 0.0085,
+    "z": -1.35
+   }
+  },
+  "runs_pooled": 54,
+  "total_steady_calls": 7995,
+  "max_abs_z": 1.35
+ },
+ "lead": {
+  "note": "first provider attempt after the create burst (t_create); run-one.sh LEAD_S = 40 (steady), sweep.sh LEAD_S = 25 (outage)",
+  "steady_first_attempt_after_create_s": [
+   39.146,
+   40.224
+  ],
+  "outage_first_attempt_after_create_s": [
+   24.159,
+   25.13
+  ]
+ },
+ "W": {
+  "source_runs": 9,
+  "bracket_overall_s": [
+   32.647,
+   34.519
+  ],
+  "bracket_midpoints_s": [
+   34.081,
+   34.158,
+   34.465,
+   33.24,
+   33.908,
+   33.232,
+   32.746,
+   33.433,
+   33.581
+  ],
+  "W_mid_s": 33.581,
+  "configured_recovery_uptime_s": 60.0,
+  "uptime_at_first_attempt_s": {
+   "at_W_mid": 26.419,
+   "range": [
+    25.481,
+    27.353
+   ]
+  },
+  "note": "the mock fails every call until RECOVER_S of process uptime; the cohort's first attempt comes that much earlier than recovery, so it faces W, not RECOVER_S"
+ },
+ "model": {
+  "seed": 20261005,
+  "trials": 400000,
+  "base_ms": 1000,
+  "cap_ms": 15000,
+  "attempts": 8,
+  "waits": 7,
+  "rule": "a job survives iff the sum of its waits >= W (its last attempt lands at or after recovery)",
+  "assumptions": [
+   "waits only: replicates computeBackoff exactly (floors included)",
+   "ignores per-attempt processing time and worker queueing (concurrency 5), which delay attempts slightly and so help survival a little",
+   "W taken from the jittered runs' recovery brackets",
+   "every job starts its first attempt at t0 (the cohort is synchronized)"
+  ],
+  "per_strategy": {
+   "none": {
+    "predicted_survival_pct_at_W_mid": 0.0,
+    "predicted_survival_pct_at_bracket_lo": 0.0,
+    "predicted_survival_pct_at_bracket_hi": 0.0,
+    "predicted_survival_pct_at_60s": 0.0,
+    "predicted_survival_pct_at_34s_audit_check": 0.0,
+    "wait_sum_s": {
+     "min": 0.0,
+     "mean": 0.0,
+     "max": 0.0,
+     "sd": 0.0
+    },
+    "observed_pct_mean": 0.0,
+    "observed_pct_runs": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "diff_pp_observed_minus_W_mid": 0.0,
+    "binomial_se_pp_at_W_mid": 0.0,
+    "n_jobs_pooled": 300,
+    "agrees": true
+   },
+   "fixed": {
+    "predicted_survival_pct_at_W_mid": 0.0,
+    "predicted_survival_pct_at_bracket_lo": 0.0,
+    "predicted_survival_pct_at_bracket_hi": 0.0,
+    "predicted_survival_pct_at_60s": 0.0,
+    "predicted_survival_pct_at_34s_audit_check": 0.0,
+    "wait_sum_s": {
+     "min": 7.0,
+     "mean": 7.0,
+     "max": 7.0,
+     "sd": 0.0
+    },
+    "observed_pct_mean": 0.0,
+    "observed_pct_runs": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "diff_pp_observed_minus_W_mid": 0.0,
+    "binomial_se_pp_at_W_mid": 0.0,
+    "n_jobs_pooled": 300,
+    "agrees": true
+   },
+   "exp": {
+    "predicted_survival_pct_at_W_mid": 100.0,
+    "predicted_survival_pct_at_bracket_lo": 100.0,
+    "predicted_survival_pct_at_bracket_hi": 100.0,
+    "predicted_survival_pct_at_60s": 100.0,
+    "predicted_survival_pct_at_34s_audit_check": 100.0,
+    "wait_sum_s": {
+     "min": 60.0,
+     "mean": 60.0,
+     "max": 60.0,
+     "sd": 0.0
+    },
+    "observed_pct_mean": 100.0,
+    "observed_pct_runs": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "diff_pp_observed_minus_W_mid": 0.0,
+    "binomial_se_pp_at_W_mid": 0.0,
+    "n_jobs_pooled": 300,
+    "agrees": true
+   },
+   "full_jitter": {
+    "predicted_survival_pct_at_W_mid": 33.34,
+    "predicted_survival_pct_at_bracket_lo": 37.6,
+    "predicted_survival_pct_at_bracket_hi": 29.27,
+    "predicted_survival_pct_at_60s": 0.0,
+    "predicted_survival_pct_at_34s_audit_check": 31.5,
+    "wait_sum_s": {
+     "min": 2.838,
+     "mean": 29.993,
+     "max": 57.492,
+     "sd": 7.97
+    },
+    "observed_pct_mean": 32.0,
+    "observed_pct_runs": [
+     38.0,
+     26.0,
+     32.0
+    ],
+    "diff_pp_observed_minus_W_mid": -1.34,
+    "binomial_se_pp_at_W_mid": 2.72,
+    "n_jobs_pooled": 300,
+    "agrees": true
+   },
+   "equal_jitter": {
+    "predicted_survival_pct_at_W_mid": 99.95,
+    "predicted_survival_pct_at_bracket_lo": 99.99,
+    "predicted_survival_pct_at_bracket_hi": 99.79,
+    "predicted_survival_pct_at_60s": 0.0,
+    "predicted_survival_pct_at_34s_audit_check": 99.9,
+    "wait_sum_s": {
+     "min": 31.864,
+     "mean": 44.983,
+     "max": 58.343,
+     "sd": 3.977
+    },
+    "observed_pct_mean": 100.0,
+    "observed_pct_runs": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "diff_pp_observed_minus_W_mid": 0.05,
+    "binomial_se_pp_at_W_mid": 0.13,
+    "n_jobs_pooled": 300,
+    "agrees": true
+   },
+   "decorrelated": {
+    "predicted_survival_pct_at_W_mid": 70.27,
+    "predicted_survival_pct_at_bracket_lo": 71.66,
+    "predicted_survival_pct_at_bracket_hi": 68.84,
+    "predicted_survival_pct_at_60s": 27.86,
+    "predicted_survival_pct_at_34s_audit_check": 69.63,
+    "wait_sum_s": {
+     "min": 8.138,
+     "mean": 46.49,
+     "max": 86.922,
+     "sd": 18.86
+    },
+    "observed_pct_mean": 73.0,
+    "observed_pct_runs": [
+     74.0,
+     71.0,
+     74.0
+    ],
+    "diff_pp_observed_minus_W_mid": 2.73,
+    "binomial_se_pp_at_W_mid": 2.64,
+    "n_jobs_pooled": 300,
+    "agrees": true
+   }
+  },
+  "agreement_rule": "agrees = pooled observed delivery lies within the model's prediction over the W bracket, widened by 2 binomial SE at n = 300",
+  "all_strategies_agree": true,
+  "equal_jitter": {
+   "floor_sum_s": 30.0,
+   "max_possible_sum_s": 59.993,
+   "mc_sum_min_s": 31.864,
+   "mc_sum_mean_s": 44.983,
+   "mc_sum_max_s": 58.343,
+   "random_half_needed_at_W_mid_s": 3.581,
+   "random_half_needed_over_bracket_s": [
+    2.647,
+    4.519
+   ],
+   "min_attempts_for_floor_sum_60s": 12,
+   "min_waits_for_floor_sum_60s": 11
+  },
+  "default_budget": {
+   "source": "src/config/env.ts defaults: REMINDER_MAX_ATTEMPTS 5, REMINDER_BACKOFF_BASE_MS 1000, REMINDER_BACKOFF_CAP_MS 15000, strategy equal_jitter",
+   "attempts": 5,
+   "waits": 4,
+   "equal_jitter_floor_sum_s": 7.5,
+   "equal_jitter_max_possible_sum_s": 14.996,
+   "equal_jitter_mc_sum_min_s": 7.645,
+   "equal_jitter_mc_sum_mean_s": 11.249,
+   "equal_jitter_mc_sum_max_s": 14.906,
+   "exp_wait_sum_s": 15.0,
+   "note": "reach of the shipped default: equal jitter's waits sum to at least the floor sum and to just under the exponential schedule's sum; no run used this budget in an outage"
+  },
+  "full_jitter": {
+   "sum_mean_s_8_attempts": 29.993,
+   "sum_sd_s_8_attempts": 7.97,
+   "expected_sum_s_10_attempts_analytic": 45.0,
+   "sum_mean_s_10_attempts": 44.972,
+   "predicted_survival_pct_10_attempts_at_W_mid": 86.78,
+   "predicted_survival_pct_10_attempts_at_bracket_lo": 88.68,
+   "predicted_survival_pct_10_attempts_at_bracket_hi": 84.72,
+   "predicted_survival_pct_10_attempts_at_60s": 6.88,
+   "note": "10 attempts gives full jitter the same expected total wait as equal jitter at 8"
+  },
+  "exp": {
+   "attempt_time_s_by_attempt": {
+    "1": 0.0,
+    "2": 1.0,
+    "3": 3.0,
+    "4": 7.0,
+    "5": 15.0,
+    "6": 30.0,
+    "7": 45.0,
+    "8": 60.0
+   },
+   "wait_sum_s": 60.0,
+   "at_60s": "boundary: the 8th attempt lands exactly at 60 s of waiting, so W = 60 s is the largest window it covers"
+  },
+  "survival_grid_8_attempts": {
+   "W_s": [
+    0,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    55,
+    60,
+    65,
+    70,
+    75,
+    80,
+    85,
+    90
+   ],
+   "none": [
+    100.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "fixed": [
+    100.0,
+    100.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "exp": [
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "full_jitter": [
+    100.0,
+    100.0,
+    99.65,
+    97.12,
+    89.03,
+    72.61,
+    49.96,
+    27.28,
+    10.93,
+    2.89,
+    0.35,
+    0.01,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "equal_jitter": [
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    99.65,
+    88.96,
+    49.89,
+    10.79,
+    0.33,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "decorrelated": [
+    100.0,
+    100.0,
+    99.96,
+    97.69,
+    91.18,
+    83.26,
+    75.61,
+    68.11,
+    60.4,
+    52.71,
+    44.38,
+    36.14,
+    27.86,
+    19.89,
+    12.96,
+    6.72,
+    2.58,
+    0.32,
+    0.0
+   ]
+  },
+  "decorrelated_exceeds_equal_jitter_from_W_s": 44.7
+ },
+ "outage_runs": [
+  {
+   "strategy": "none",
+   "repeat": 1,
+   "file": "none_f0_p0_rec60000_att8_rep1.json",
+   "t0_ms": 1787822163164,
+   "t0_after_create_s": 24.159,
+   "delivered": 0,
+   "dead": 100,
+   "calls": 800,
+   "failed_attempts": 800,
+   "retries": 700,
+   "calls_before_first_success": 800,
+   "peak_1s_before_first_success": 594,
+   "first_success_s": null,
+   "last_failure_before_success_s": null,
+   "peak_recovery_load": null,
+   "peak_per_survivor": null
+  },
+  {
+   "strategy": "none",
+   "repeat": 2,
+   "file": "none_f0_p0_rec60000_att8_rep2.json",
+   "t0_ms": 1787822139143,
+   "t0_after_create_s": 24.426,
+   "delivered": 0,
+   "dead": 100,
+   "calls": 800,
+   "failed_attempts": 800,
+   "retries": 700,
+   "calls_before_first_success": 800,
+   "peak_1s_before_first_success": 597,
+   "first_success_s": null,
+   "last_failure_before_success_s": null,
+   "peak_recovery_load": null,
+   "peak_per_survivor": null
+  },
+  {
+   "strategy": "none",
+   "repeat": 3,
+   "file": "none_f0_p0_rec60000_att8_rep3.json",
+   "t0_ms": 1787822148179,
+   "t0_after_create_s": 25.13,
+   "delivered": 0,
+   "dead": 100,
+   "calls": 800,
+   "failed_attempts": 800,
+   "retries": 700,
+   "calls_before_first_success": 800,
+   "peak_1s_before_first_success": 772,
+   "first_success_s": null,
+   "last_failure_before_success_s": null,
+   "peak_recovery_load": null,
+   "peak_per_survivor": null
+  },
+  {
+   "strategy": "fixed",
+   "repeat": 1,
+   "file": "fixed_f0_p0_rec60000_att8_rep1.json",
+   "t0_ms": 1787822214217,
+   "t0_after_create_s": 24.626,
+   "delivered": 0,
+   "dead": 100,
+   "calls": 800,
+   "failed_attempts": 800,
+   "retries": 700,
+   "calls_before_first_success": 800,
+   "peak_1s_before_first_success": 100,
+   "first_success_s": null,
+   "last_failure_before_success_s": null,
+   "peak_recovery_load": null,
+   "peak_per_survivor": null
+  },
+  {
+   "strategy": "fixed",
+   "repeat": 2,
+   "file": "fixed_f0_p0_rec60000_att8_rep2.json",
+   "t0_ms": 1787822190159,
+   "t0_after_create_s": 24.924,
+   "delivered": 0,
+   "dead": 100,
+   "calls": 800,
+   "failed_attempts": 800,
+   "retries": 700,
+   "calls_before_first_success": 800,
+   "peak_1s_before_first_success": 100,
+   "first_success_s": null,
+   "last_failure_before_success_s": null,
+   "peak_recovery_load": null,
+   "peak_per_survivor": null
+  },
+  {
+   "strategy": "fixed",
+   "repeat": 3,
+   "file": "fixed_f0_p0_rec60000_att8_rep3.json",
+   "t0_ms": 1787822196074,
+   "t0_after_create_s": 24.601,
+   "delivered": 0,
+   "dead": 100,
+   "calls": 800,
+   "failed_attempts": 800,
+   "retries": 700,
+   "calls_before_first_success": 800,
+   "peak_1s_before_first_success": 100,
+   "first_success_s": null,
+   "last_failure_before_success_s": null,
+   "peak_recovery_load": null,
+   "peak_per_survivor": null
+  },
+  {
+   "strategy": "exp",
+   "repeat": 1,
+   "file": "exp_f0_p0_rec60000_att8_rep1.json",
+   "t0_ms": 1787822272177,
+   "t0_after_create_s": 24.731,
+   "delivered": 100,
+   "dead": 0,
+   "calls": 700,
+   "failed_attempts": 600,
+   "retries": 600,
+   "calls_before_first_success": 600,
+   "peak_1s_before_first_success": 100,
+   "last_failure_before_success_s": 31.248,
+   "first_success_s": 45.689,
+   "peak_recovery_load": 100,
+   "peak_per_survivor": 1.0,
+   "success_attempt_index_counts": {
+    "7": 100
+   },
+   "success_time_s": {
+    "min": 45.689,
+    "median": 45.912,
+    "max": 46.292,
+    "spread": 0.603
+   }
+  },
+  {
+   "strategy": "exp",
+   "repeat": 2,
+   "file": "exp_f0_p0_rec60000_att8_rep2.json",
+   "t0_ms": 1787822248094,
+   "t0_after_create_s": 24.606,
+   "delivered": 100,
+   "dead": 0,
+   "calls": 700,
+   "failed_attempts": 600,
+   "retries": 600,
+   "calls_before_first_success": 600,
+   "peak_1s_before_first_success": 100,
+   "last_failure_before_success_s": 31.076,
+   "first_success_s": 45.7,
+   "peak_recovery_load": 100,
+   "peak_per_survivor": 1.0,
+   "success_attempt_index_counts": {
+    "7": 100
+   },
+   "success_time_s": {
+    "min": 45.7,
+    "median": 45.882,
+    "max": 46.082,
+    "spread": 0.382
+   }
+  },
+  {
+   "strategy": "exp",
+   "repeat": 3,
+   "file": "exp_f0_p0_rec60000_att8_rep3.json",
+   "t0_ms": 1787822252124,
+   "t0_after_create_s": 24.416,
+   "delivered": 100,
+   "dead": 0,
+   "calls": 700,
+   "failed_attempts": 600,
+   "retries": 600,
+   "calls_before_first_success": 600,
+   "peak_1s_before_first_success": 100,
+   "last_failure_before_success_s": 30.749,
+   "first_success_s": 45.45,
+   "peak_recovery_load": 100,
+   "peak_per_survivor": 1.0,
+   "success_attempt_index_counts": {
+    "7": 100
+   },
+   "success_time_s": {
+    "min": 45.45,
+    "median": 45.569,
+    "max": 45.814,
+    "spread": 0.364
+   }
+  },
+  {
+   "strategy": "full_jitter",
+   "repeat": 1,
+   "file": "full_jitter_f0_p0_rec60000_att8_rep1.json",
+   "t0_ms": 1787822367157,
+   "t0_after_create_s": 25.025,
+   "delivered": 38,
+   "dead": 62,
+   "calls": 794,
+   "failed_attempts": 756,
+   "retries": 694,
+   "calls_before_first_success": 756,
+   "peak_1s_before_first_success": 200,
+   "last_failure_before_success_s": 33.88,
+   "first_success_s": 34.282,
+   "recovery_bracket_s": [
+    33.88,
+    34.282
+   ],
+   "recovery_bracket_mid_s": 34.081,
+   "peak_recovery_load": 9,
+   "peak_per_survivor": 0.237,
+   "predicted_survival_pct_at_own_mid": 31.16
+  },
+  {
+   "strategy": "full_jitter",
+   "repeat": 2,
+   "file": "full_jitter_f0_p0_rec60000_att8_rep2.json",
+   "t0_ms": 1787822342154,
+   "t0_after_create_s": 24.876,
+   "delivered": 26,
+   "dead": 74,
+   "calls": 795,
+   "failed_attempts": 769,
+   "retries": 695,
+   "calls_before_first_success": 769,
+   "peak_1s_before_first_success": 195,
+   "last_failure_before_success_s": 33.95,
+   "first_success_s": 34.367,
+   "recovery_bracket_s": [
+    33.95,
+    34.367
+   ],
+   "recovery_bracket_mid_s": 34.158,
+   "peak_recovery_load": 8,
+   "peak_per_survivor": 0.308,
+   "predicted_survival_pct_at_own_mid": 30.81
+  },
+  {
+   "strategy": "full_jitter",
+   "repeat": 3,
+   "file": "full_jitter_f0_p0_rec60000_att8_rep3.json",
+   "t0_ms": 1787822345125,
+   "t0_after_create_s": 24.897,
+   "delivered": 32,
+   "dead": 68,
+   "calls": 794,
+   "failed_attempts": 762,
+   "retries": 694,
+   "calls_before_first_success": 762,
+   "peak_1s_before_first_success": 202,
+   "last_failure_before_success_s": 34.412,
+   "first_success_s": 34.519,
+   "recovery_bracket_s": [
+    34.412,
+    34.519
+   ],
+   "recovery_bracket_mid_s": 34.465,
+   "peak_recovery_load": 8,
+   "peak_per_survivor": 0.25,
+   "predicted_survival_pct_at_own_mid": 29.5
+  },
+  {
+   "strategy": "equal_jitter",
+   "repeat": 1,
+   "file": "equal_jitter_f0_p0_rec60000_att8_rep1.json",
+   "t0_ms": 1787822926121,
+   "t0_after_create_s": 24.443,
+   "delivered": 100,
+   "dead": 0,
+   "calls": 742,
+   "failed_attempts": 642,
+   "retries": 642,
+   "calls_before_first_success": 642,
+   "peak_1s_before_first_success": 128,
+   "last_failure_before_success_s": 33.033,
+   "first_success_s": 33.447,
+   "recovery_bracket_s": [
+    33.033,
+    33.447
+   ],
+   "recovery_bracket_mid_s": 33.24,
+   "peak_recovery_load": 15,
+   "peak_per_survivor": 0.15,
+   "predicted_survival_pct_at_own_mid": 99.97
+  },
+  {
+   "strategy": "equal_jitter",
+   "repeat": 2,
+   "file": "equal_jitter_f0_p0_rec60000_att8_rep2.json",
+   "t0_ms": 1787822920304,
+   "t0_after_create_s": 24.765,
+   "delivered": 100,
+   "dead": 0,
+   "calls": 738,
+   "failed_attempts": 638,
+   "retries": 638,
+   "calls_before_first_success": 638,
+   "peak_1s_before_first_success": 162,
+   "last_failure_before_success_s": 33.754,
+   "first_success_s": 34.063,
+   "recovery_bracket_s": [
+    33.754,
+    34.063
+   ],
+   "recovery_bracket_mid_s": 33.908,
+   "peak_recovery_load": 23,
+   "peak_per_survivor": 0.23,
+   "predicted_survival_pct_at_own_mid": 99.91
+  },
+  {
+   "strategy": "equal_jitter",
+   "repeat": 3,
+   "file": "equal_jitter_f0_p0_rec60000_att8_rep3.json",
+   "t0_ms": 1787822922172,
+   "t0_after_create_s": 24.393,
+   "delivered": 100,
+   "dead": 0,
+   "calls": 735,
+   "failed_attempts": 635,
+   "retries": 635,
+   "calls_before_first_success": 635,
+   "peak_1s_before_first_success": 166,
+   "last_failure_before_success_s": 33.135,
+   "first_success_s": 33.329,
+   "recovery_bracket_s": [
+    33.135,
+    33.329
+   ],
+   "recovery_bracket_mid_s": 33.232,
+   "peak_recovery_load": 18,
+   "peak_per_survivor": 0.18,
+   "predicted_survival_pct_at_own_mid": 99.97
+  },
+  {
+   "strategy": "decorrelated",
+   "repeat": 1,
+   "file": "decorrelated_f0_p0_rec60000_att8_rep1.json",
+   "t0_ms": 1787822462103,
+   "t0_after_create_s": 24.819,
+   "delivered": 74,
+   "dead": 26,
+   "calls": 688,
+   "failed_attempts": 614,
+   "retries": 588,
+   "calls_before_first_success": 614,
+   "peak_1s_before_first_success": 100,
+   "last_failure_before_success_s": 32.647,
+   "first_success_s": 32.845,
+   "recovery_bracket_s": [
+    32.647,
+    32.845
+   ],
+   "recovery_bracket_mid_s": 32.746,
+   "peak_recovery_load": 11,
+   "peak_per_survivor": 0.149,
+   "predicted_survival_pct_at_own_mid": 71.51
+  },
+  {
+   "strategy": "decorrelated",
+   "repeat": 2,
+   "file": "decorrelated_f0_p0_rec60000_att8_rep2.json",
+   "t0_ms": 1787822436101,
+   "t0_after_create_s": 24.718,
+   "delivered": 71,
+   "dead": 29,
+   "calls": 686,
+   "failed_attempts": 615,
+   "retries": 586,
+   "calls_before_first_success": 615,
+   "peak_1s_before_first_success": 100,
+   "last_failure_before_success_s": 33.273,
+   "first_success_s": 33.593,
+   "recovery_bracket_s": [
+    33.273,
+    33.593
+   ],
+   "recovery_bracket_mid_s": 33.433,
+   "peak_recovery_load": 13,
+   "peak_per_survivor": 0.183,
+   "predicted_survival_pct_at_own_mid": 70.5
+  },
+  {
+   "strategy": "decorrelated",
+   "repeat": 3,
+   "file": "decorrelated_f0_p0_rec60000_att8_rep3.json",
+   "t0_ms": 1787822442153,
+   "t0_after_create_s": 24.397,
+   "delivered": 74,
+   "dead": 26,
+   "calls": 705,
+   "failed_attempts": 631,
+   "retries": 605,
+   "calls_before_first_success": 631,
+   "peak_1s_before_first_success": 100,
+   "last_failure_before_success_s": 33.419,
+   "first_success_s": 33.742,
+   "recovery_bracket_s": [
+    33.419,
+    33.742
+   ],
+   "recovery_bracket_mid_s": 33.581,
+   "peak_recovery_load": 12,
+   "peak_per_survivor": 0.162,
+   "predicted_survival_pct_at_own_mid": 70.27
+  }
+ ],
+ "exp_wave": {
+  "success_attempt_index_counts_all_runs": {
+   "7": 300
+  },
+  "first_success_s": [
+   45.689,
+   45.7,
+   45.45
+  ],
+  "success_spread_s": [
+   0.603,
+   0.382,
+   0.364
+  ],
+  "last_failure_before_success_s": [
+   31.248,
+   31.076,
+   30.749
+  ],
+  "first_success_after_W_mid_s": [
+   12.108,
+   12.119,
+   11.869
+  ],
+  "first_success_after_recovery_range_s": [
+   10.931,
+   13.053
+  ],
+  "t0_after_create_s": [
+   24.731,
+   24.606,
+   24.416
+  ]
+ },
+ "load_by_strategy": {
+  "none": {
+   "delivered": [
+    0,
+    0,
+    0
+   ],
+   "calls": [
+    800,
+    800,
+    800
+   ],
+   "calls_before_first_success": [
+    800,
+    800,
+    800
+   ],
+   "calls_before_first_success_mean": 800.0,
+   "peak_1s_before_first_success": [
+    594,
+    597,
+    772
+   ],
+   "peak_1s_before_first_success_mean": 654.3
+  },
+  "fixed": {
+   "delivered": [
+    0,
+    0,
+    0
+   ],
+   "calls": [
+    800,
+    800,
+    800
+   ],
+   "calls_before_first_success": [
+    800,
+    800,
+    800
+   ],
+   "calls_before_first_success_mean": 800.0,
+   "peak_1s_before_first_success": [
+    100,
+    100,
+    100
+   ],
+   "peak_1s_before_first_success_mean": 100.0
+  },
+  "exp": {
+   "delivered": [
+    100,
+    100,
+    100
+   ],
+   "calls": [
+    700,
+    700,
+    700
+   ],
+   "calls_before_first_success": [
+    600,
+    600,
+    600
+   ],
+   "calls_before_first_success_mean": 600.0,
+   "peak_1s_before_first_success": [
+    100,
+    100,
+    100
+   ],
+   "peak_1s_before_first_success_mean": 100.0,
+   "peak_recovery_load": [
+    100,
+    100,
+    100
+   ],
+   "peak_recovery_load_min": 100,
+   "peak_recovery_load_max": 100,
+   "peak_recovery_load_mean": 100.0,
+   "peak_per_survivor": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "peak_per_survivor_mean": 1.0
+  },
+  "full_jitter": {
+   "delivered": [
+    38,
+    26,
+    32
+   ],
+   "calls": [
+    794,
+    795,
+    794
+   ],
+   "calls_before_first_success": [
+    756,
+    769,
+    762
+   ],
+   "calls_before_first_success_mean": 762.3,
+   "peak_1s_before_first_success": [
+    200,
+    195,
+    202
+   ],
+   "peak_1s_before_first_success_mean": 199.0,
+   "peak_recovery_load": [
+    9,
+    8,
+    8
+   ],
+   "peak_recovery_load_min": 8,
+   "peak_recovery_load_max": 9,
+   "peak_recovery_load_mean": 8.33,
+   "peak_per_survivor": [
+    0.237,
+    0.308,
+    0.25
+   ],
+   "peak_per_survivor_mean": 0.265
+  },
+  "equal_jitter": {
+   "delivered": [
+    100,
+    100,
+    100
+   ],
+   "calls": [
+    742,
+    738,
+    735
+   ],
+   "calls_before_first_success": [
+    642,
+    638,
+    635
+   ],
+   "calls_before_first_success_mean": 638.3,
+   "peak_1s_before_first_success": [
+    128,
+    162,
+    166
+   ],
+   "peak_1s_before_first_success_mean": 152.0,
+   "peak_recovery_load": [
+    15,
+    23,
+    18
+   ],
+   "peak_recovery_load_min": 15,
+   "peak_recovery_load_max": 23,
+   "peak_recovery_load_mean": 18.67,
+   "peak_per_survivor": [
+    0.15,
+    0.23,
+    0.18
+   ],
+   "peak_per_survivor_mean": 0.187
+  },
+  "decorrelated": {
+   "delivered": [
+    74,
+    71,
+    74
+   ],
+   "calls": [
+    688,
+    686,
+    705
+   ],
+   "calls_before_first_success": [
+    614,
+    615,
+    631
+   ],
+   "calls_before_first_success_mean": 620.0,
+   "peak_1s_before_first_success": [
+    100,
+    100,
+    100
+   ],
+   "peak_1s_before_first_success_mean": 100.0,
+   "peak_recovery_load": [
+    11,
+    13,
+    12
+   ],
+   "peak_recovery_load_min": 11,
+   "peak_recovery_load_max": 13,
+   "peak_recovery_load_mean": 12.0,
+   "peak_per_survivor": [
+    0.149,
+    0.183,
+    0.162
+   ],
+   "peak_per_survivor_mean": 0.165
+  }
+ },
+ "recovery_load_headline": {
+  "equal_jitter_mean_peak": 18.67,
+  "exp_mean_peak": 100.0,
+  "ratio_exp_over_equal_jitter": 5.36,
+  "note": "exponential's whole cohort lands inside one 1-s window (see exp_wave.success_spread_s), so 100 is capped by N and the ratio grows at finer windows"
+ },
+ "full_jitter_vs_exp_during_outage": {
+  "calls_before_first_success_mean": {
+   "full_jitter": 762.3,
+   "exp": 600.0
+  },
+  "peak_1s_before_first_success_mean": {
+   "full_jitter": 199.0,
+   "exp": 100.0
+  },
+  "peak_ratio_full_jitter_over_exp": 1.99
+ },
+ "steady": {
+  "per_f": {
+   "0.1": {
+    "cost_per_delivered": {
+     "none": 1.13,
+     "fixed": 1.11,
+     "exp": 1.163,
+     "full_jitter": 1.08,
+     "equal_jitter": 1.09,
+     "decorrelated": 1.137
+    },
+    "cost_per_delivered_range": [
+     1.08,
+     1.163
+    ],
+    "cost_cheapest": "full_jitter",
+    "cost_dearest": "exp",
+    "delivery_cell_mean_pct": {
+     "none": 100.0,
+     "fixed": 100.0,
+     "exp": 100.0,
+     "full_jitter": 100.0,
+     "equal_jitter": 100.0,
+     "decorrelated": 100.0
+    },
+    "delivery_cell_mean_range_pct": [
+     100.0,
+     100.0
+    ],
+    "delivery_single_run_range_pct": [
+     100.0,
+     100.0
+    ],
+    "lowest_single_run": null,
+    "pooled_delivery_pct": 100.0,
+    "expected_delivery_pct_1_minus_f_pow_attempts": 99.999,
+    "attempts": 5,
+    "latency_s": {
+     "p50": {
+      "none": 0.554,
+      "fixed": 0.362,
+      "exp": 0.303,
+      "full_jitter": 0.257,
+      "equal_jitter": 0.785,
+      "decorrelated": 0.517
+     },
+     "p95": {
+      "none": 0.911,
+      "fixed": 1.458,
+      "exp": 1.389,
+      "full_jitter": 0.599,
+      "equal_jitter": 1.967,
+      "decorrelated": 2.539
+     },
+     "p99": {
+      "none": 0.937,
+      "fixed": 1.588,
+      "exp": 3.372,
+      "full_jitter": 1.092,
+      "equal_jitter": 2.898,
+      "decorrelated": 4.187
+     }
+    },
+    "latency_samples_per_cell_range": [
+     300,
+     300
+    ],
+    "p95_stretch_vs_none": {
+     "exp": 1.52,
+     "decorrelated": 2.79
+    },
+    "none_rank_lowest_is_1": {
+     "p50": 5,
+     "p95": 2,
+     "p99": 1
+    },
+    "strategies_ranked": 6
+   },
+   "0.3": {
+    "cost_per_delivered": {
+     "none": 1.507,
+     "fixed": 1.44,
+     "exp": 1.4,
+     "full_jitter": 1.395,
+     "equal_jitter": 1.393,
+     "decorrelated": 1.393
+    },
+    "cost_per_delivered_range": [
+     1.393,
+     1.507
+    ],
+    "cost_cheapest": "equal_jitter",
+    "cost_dearest": "none",
+    "delivery_cell_mean_pct": {
+     "none": 100.0,
+     "fixed": 100.0,
+     "exp": 100.0,
+     "full_jitter": 99.67,
+     "equal_jitter": 100.0,
+     "decorrelated": 100.0
+    },
+    "delivery_cell_mean_range_pct": [
+     99.67,
+     100.0
+    ],
+    "delivery_single_run_range_pct": [
+     99.0,
+     100.0
+    ],
+    "lowest_single_run": {
+     "strategy": "full_jitter",
+     "repeat": 2,
+     "delivered_pct": 99.0,
+     "observed_failure_fraction": 0.293
+    },
+    "pooled_delivery_pct": 99.94,
+    "expected_delivery_pct_1_minus_f_pow_attempts": 99.757,
+    "attempts": 5,
+    "latency_s": {
+     "p50": {
+      "none": 0.393,
+      "fixed": 0.607,
+      "exp": 0.504,
+      "full_jitter": 0.398,
+      "equal_jitter": 0.659,
+      "decorrelated": 0.367
+     },
+     "p95": {
+      "none": 0.617,
+      "fixed": 2.501,
+      "exp": 3.608,
+      "full_jitter": 1.624,
+      "equal_jitter": 2.841,
+      "decorrelated": 5.882
+     },
+     "p99": {
+      "none": 0.644,
+      "fixed": 3.825,
+      "exp": 7.473,
+      "full_jitter": 2.688,
+      "equal_jitter": 10.112,
+      "decorrelated": 10.757
+     }
+    },
+    "latency_samples_per_cell_range": [
+     299,
+     300
+    ],
+    "p95_stretch_vs_none": {
+     "exp": 5.85,
+     "decorrelated": 9.53
+    },
+    "none_rank_lowest_is_1": {
+     "p50": 2,
+     "p95": 1,
+     "p99": 1
+    },
+    "strategies_ranked": 6
+   },
+   "0.5": {
+    "cost_per_delivered": {
+     "none": 1.993,
+     "fixed": 2.087,
+     "exp": 2.045,
+     "full_jitter": 1.85,
+     "equal_jitter": 1.898,
+     "decorrelated": 1.866
+    },
+    "cost_per_delivered_range": [
+     1.85,
+     2.087
+    ],
+    "cost_cheapest": "full_jitter",
+    "cost_dearest": "fixed",
+    "delivery_cell_mean_pct": {
+     "none": 98.0,
+     "fixed": 96.0,
+     "exp": 97.33,
+     "full_jitter": 98.0,
+     "equal_jitter": 97.67,
+     "decorrelated": 97.0
+    },
+    "delivery_cell_mean_range_pct": [
+     96.0,
+     98.0
+    ],
+    "delivery_single_run_range_pct": [
+     91.0,
+     99.0
+    ],
+    "lowest_single_run": {
+     "strategy": "fixed",
+     "repeat": 3,
+     "delivered_pct": 91.0,
+     "observed_failure_fraction": 0.573
+    },
+    "pooled_delivery_pct": 97.33,
+    "expected_delivery_pct_1_minus_f_pow_attempts": 96.875,
+    "attempts": 5,
+    "latency_s": {
+     "p50": {
+      "none": 0.522,
+      "fixed": 0.664,
+      "exp": 1.159,
+      "full_jitter": 0.337,
+      "equal_jitter": 0.335,
+      "decorrelated": 0.343
+     },
+     "p95": {
+      "none": 0.828,
+      "fixed": 3.749,
+      "exp": 11.072,
+      "full_jitter": 3.892,
+      "equal_jitter": 5.736,
+      "decorrelated": 9.927
+     },
+     "p99": {
+      "none": 0.846,
+      "fixed": 4.832,
+      "exp": 15.574,
+      "full_jitter": 6.326,
+      "equal_jitter": 12.077,
+      "decorrelated": 16.877
+     }
+    },
+    "latency_samples_per_cell_range": [
+     288,
+     294
+    ],
+    "p95_stretch_vs_none": {
+     "exp": 13.37,
+     "decorrelated": 11.99
+    },
+    "none_rank_lowest_is_1": {
+     "p50": 4,
+     "p95": 1,
+     "p99": 1
+    },
+    "strategies_ranked": 6
+   }
+  },
+  "f05_p95_exp_s": 11.072,
+  "f05_p95_full_jitter_s": 3.892,
+  "f05_p95_ratio_exp_over_full_jitter": 2.84,
+  "f05_p95_ratio_full_jitter_over_exp": 0.352
+ },
+ "precision": {
+  "note": "binomial approximations; between-run spread can exceed binomial noise, so real thresholds are at least this large",
+  "near_ceiling": {
+   "p": 0.9733,
+   "jobs_per_cell": 300,
+   "min_detectable_difference_pp": 2.58,
+   "per_run_binomial_sd_pp_n100": 1.61
+  },
+  "outage_regime_full_jitter": {
+   "p": 0.32,
+   "jobs_per_cell": 300,
+   "min_detectable_difference_pp": 7.47,
+   "per_run_binomial_sd_pp_n100": 4.66,
+   "observed_runs_pct": [
+    38.0,
+    26.0,
+    32.0
+   ]
+  },
+  "p99_tail_observations_per_cell": [
+   2.88,
+   3.0
+  ]
+ }
+}
