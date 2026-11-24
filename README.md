@@ -248,4 +248,6 @@ experiments/                   harness (run-one.sh, sweep.sh), analyze.py, REPOR
 
 ---
 
+**How this was built.** I designed and directed this study. The code, experiments and analysis were developed with Claude (Anthropic) as an AI pair programmer, and the October 2026 audit and claim-verification pass that produced this revision was AI-assisted as well. Every number is derived from the raw run data in `experiments/results/raw/` by `experiments/analyze.py`, and I have reviewed the results and take responsibility for them.
+
 Built as a systems portfolio project. Runs entirely on free, local infrastructure.
