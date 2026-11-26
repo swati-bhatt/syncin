@@ -815,11 +815,11 @@ if steady:
         ys = [np.mean([100.0 * r["result"]["sent"] / r["config"]["n_reminders"]
                        for r in steady[(s, f)]]) for f in xs]
         ax.plot(xs, ys, "-o", color=COLORS[s], lw=2, ms=5, label=LABELS[s])
-        ax.annotate(LABELS[s], (xs[-1], ys[-1]), xytext=(6, 0),
-                    textcoords="offset points", color=COLORS[s], fontsize=9, va="center")
+    # No end-of-line labels: at f = 0.5 several lines end within a point of each other
+    # (none and full jitter coincide), so the labels collided. The legend names them.
     lo = min(min(100.0 * r["result"]["sent"] / r["config"]["n_reminders"]
                  for rs in steady.values() for r in rs), 99)
-    ax.set_xlim(0.05, 0.62); ax.set_ylim(max(0, lo - 2), 100.6)
+    ax.set_xlim(0.05, 0.55); ax.set_ylim(max(0, lo - 2), 100.6)
     ax.set_xticks([0.1, 0.3, 0.5]); ax.set_xlabel("provider failure rate")
     ax.set_ylabel("delivered (%)")
     ax.set_title("Steady transient failure: every retry policy recovers delivery", loc="left")
